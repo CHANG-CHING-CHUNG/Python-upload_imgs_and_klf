@@ -20,6 +20,12 @@ class Database:
     self.cur.execute(query,var)
     self.conn.commit()
 
+  def exceute_query_without_commit(self, query, var):
+    self.cur.execute(query,var)
+
+  def commit(self):
+    self.conn.commit()
+
   def close(self):
     self.cur.close()
     self.conn.close()
