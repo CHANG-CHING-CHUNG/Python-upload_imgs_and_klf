@@ -20,7 +20,7 @@ class Database:
     self.cur.execute(query,var)
     self.conn.commit()
 
-  def exceute_query_without_commit(self, query, var):
+  def execute_query_without_commit(self, query, var):
     self.cur.execute(query,var)
 
   def commit(self):
@@ -29,6 +29,15 @@ class Database:
   def close(self):
     self.cur.close()
     self.conn.close()
+
+  def cur_close(self):
+    self.cur.close()
+
+  def conn_close(self):
+    self.conn.close()
+
+  def conn_rollback(self):
+    self.conn_rollback()
 
   def fetchone(self):
     return self.cur.fetchone()
