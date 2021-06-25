@@ -8,6 +8,8 @@ psycopg2 = "*"
 pillow = "*"
 python-dotenv = "*"
 psutil = "*"
+websockets = "*"
+
 [dev-packages]
 
 [requires]

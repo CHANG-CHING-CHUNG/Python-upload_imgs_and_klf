@@ -22,11 +22,22 @@ class uploadImgAndKlf:
     upload_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
     returned__klf_uuid = self.loop_klf_list(images_klf_path, klf_list, uuid_batch_number, upload_time)
     returned_img_uuid = self.loop_imgs_list(images_klf_path, imgs_list, uuid_batch_number, upload_time)
-    if returned__klf_uuid == returned_img_uuid:
+    if returned__klf_uuid != None and returned_img_uuid != None and returned__klf_uuid == returned_img_uuid:
       return [returned__klf_uuid, upload_time]
     else:
       return []
 
+  def upload_imgs(self,train_img_path):
+      imgs_list = self.get_all_img_filenames(train_img_path)
+      uuid_batch_number = str(uuid.uuid1())
+      current_time = datetime.datetime.now()
+      upload_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
+      returned_img_uuid = self.loop_imgs_list_for_training(train_img_path, imgs_list, uuid_batch_number, upload_time)
+      if returned_img_uuid != None:
+        return [returned_img_uuid, upload_time]
+      else:
+        return []
+  
   def loop_klf_list(self,images_klf_path, klf_list, uuid_batch_number, upload_time):
     returned_uuid = None
     try:
@@ -46,6 +57,22 @@ class uploadImgAndKlf:
     try:
       for img in imgs_list:
         img_path = images_klf_path+img
+        img = Image.open(img_path)
+        img_name, img_extension = splitext(basename(img.filename))
+        img_bytes = self.convert_image_to_bytes(img)
+        self.upload_img_to_db(uuid_batch_number, img_name, img_bytes, img_extension, upload_time)
+      db.commit()
+      returned_uuid = db.fetchone()[0]
+    except Exception as e :
+      db.conn_rollback()
+      print("db error: {}".format(e))
+    return returned_uuid
+
+  def loop_imgs_list_for_training(self, images_klf_path, imgs_list, uuid_batch_number, upload_time):
+    returned_uuid = None
+    try:
+      for img_dict in imgs_list:
+        img_path = img_dict["path"] + img_dict["img_name"]
         img = Image.open(img_path)
         img_name, img_extension = splitext(basename(img.filename))
         img_bytes = self.convert_image_to_bytes(img)
@@ -87,6 +114,15 @@ class uploadImgAndKlf:
       img_bytes = img[1]
       img_extension = img[2]
       self.save_img_to_target_dir(save_image_klf_path, img_name, img_extension, img_bytes)
+    return
+
+  def download_imgs(self,save_image_path, uuid_batch_number, upload_time):
+    img_list_from_db = self.download_img_from_db(uuid_batch_number, upload_time)
+    for img in img_list_from_db:
+      img_name = img[0]
+      img_bytes = img[1]
+      img_extension = img[2]
+      self.save_img_to_target_dir(save_image_path, img_name, img_extension, img_bytes)
     return
 
   def download_klf_from_db(self,uuid_batch_number, upload_time):
@@ -145,6 +181,22 @@ class uploadImgAndKlf:
           imgs_list.append(file)
     return [klf_list,imgs_list]
 
+  def get_all_img_filenames(self, directory_path):
+    imgs_list = []
+    
+    for (dirpath, dirnames, filenames) in walk(directory_path):
+        if len(filenames) >= 1:
+          for file in filenames:
+            if len(re.findall(".jpeg",file)):
+              path_img_dict = {
+                "path":dirpath+"/",
+                "img_name":file
+              }
+              imgs_list.append(path_img_dict)
+
+    print(imgs_list)
+    return imgs_list
+
   def convert_image_to_bytes(self, img):
     img_byte_arr = io.BytesIO()
     img.save(img_byte_arr, format=img.format)
@@ -157,13 +209,16 @@ train_img_path = os.getenv("TRAIN_IMG_PATH")
 
 upload_img_and_klf = uploadImgAndKlf(images_klf_path,save_image_klf_path)
 
-upload_img_and_klf.get_all_filenames(train_img_path)
 
-# result = upload_img_and_klf.upload_imgs_and_klf(images_klf_path)
+# upload_img_and_klf.get_all_img_filenames(train_img_path)
+
+# upload_img_and_klf.get_all_filenames(train_img_path)
+
+# result = upload_img_and_klf.upload_imgs(train_img_path)
 # print(result)
 # if len(result) == 2:
 #   returned_uuid, upload_time = result
-#   upload_img_and_klf.download_imgs_and_klf(save_image_klf_path ,returned_uuid, upload_time)
+#   upload_img_and_klf.download_imgs(save_image_klf_path ,returned_uuid, upload_time)
 # else:
 #   print("Error")
 
