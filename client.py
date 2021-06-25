@@ -17,7 +17,6 @@ async def hello():
 async def upload_img_operation():
     uri = "ws://localhost:8765"
     async with websockets.connect(uri) as websocket:
-        # name = input("What's your name? ")
         train_img_path = "/home/alpha/data/train_image_folder/t1/original/"
 
         print(f"> {train_img_path}")
@@ -31,7 +30,6 @@ async def upload_img_operation():
 async def upload_img_klf_operation():
     uri = "ws://localhost:8765"
     async with websockets.connect(uri) as websocket:
-        # name = input("What's your name? ")
         images_klf_path = "/home/alpha/data/hmls_inline_input_folder/t1/"
 
         print(f"> {images_klf_path}")
@@ -42,4 +40,5 @@ async def upload_img_klf_operation():
         result = await websocket.recv()
         print(f"client received result: {result}")
 
-asyncio.get_event_loop().run_until_complete(upload_img_klf_operation())
+# asyncio.get_event_loop().run_until_complete(upload_img_klf_operation())
+asyncio.get_event_loop().run_until_complete(upload_img_operation())

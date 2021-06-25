@@ -100,7 +100,7 @@ class uploadImgAndKlf:
     # returned_uuid = db.fetchone()[0]
     return
 
-  def download_imgs_and_klf(self,save_image_klf_path, uuid_batch_number, upload_time):
+  def download_imgs_and_klf(self,save_image_klf_path, uuid_batch_number, upload_time,img_is_deleted):
     klf_list_from_db = self.download_klf_from_db(uuid_batch_number, upload_time)
     for klf in klf_list_from_db:
       klf_name = klf[0]
@@ -108,7 +108,7 @@ class uploadImgAndKlf:
       klf_bytes = klf[1]
       self.save_klf_to_target_dir(save_image_klf_path, klf_name,klf_extension, klf_bytes)
 
-    img_list_from_db = self.download_img_from_db(uuid_batch_number, upload_time)
+    img_list_from_db = self.download_img_from_db(uuid_batch_number, upload_time, img_is_deleted)
     for img in img_list_from_db:
       img_name = img[0]
       img_bytes = img[1]
@@ -116,8 +116,8 @@ class uploadImgAndKlf:
       self.save_img_to_target_dir(save_image_klf_path, img_name, img_extension, img_bytes)
     return
 
-  def download_imgs(self,save_image_path, uuid_batch_number, upload_time):
-    img_list_from_db = self.download_img_from_db(uuid_batch_number, upload_time)
+  def download_imgs(self,save_image_path, uuid_batch_number, upload_time,img_is_deleted):
+    img_list_from_db = self.download_img_from_db(uuid_batch_number, upload_time,img_is_deleted)
     for img in img_list_from_db:
       img_name = img[0]
       img_bytes = img[1]
