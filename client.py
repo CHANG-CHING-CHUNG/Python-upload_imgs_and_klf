@@ -24,8 +24,6 @@ async def upload_img_operation():
         await websocket.send(json.dumps(result))
         print(f"client upload result: {json.dumps(result)}")
 
-        result = await websocket.recv()
-        print(f"client received result: {result}")
 
 async def upload_img_klf_operation():
     uri = "ws://localhost:8765"
@@ -37,8 +35,8 @@ async def upload_img_klf_operation():
         await websocket.send(json.dumps(result))
         print(f"client upload result: {json.dumps(result)}")
 
-        result = await websocket.recv()
-        print(f"client received result: {result}")
+        # result = await websocket.recv()
+        # print(f"client received result: {result}")
 
-# asyncio.get_event_loop().run_until_complete(upload_img_klf_operation())
-asyncio.get_event_loop().run_until_complete(upload_img_operation())
+asyncio.get_event_loop().run_until_complete(upload_img_klf_operation())
+# asyncio.get_event_loop().run_until_complete(upload_img_operation())

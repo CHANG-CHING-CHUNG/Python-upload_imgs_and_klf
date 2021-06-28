@@ -11,9 +11,6 @@ import io
 load_dotenv()
 
 class uploadImgAndKlf:
-  def __init__(self, images_klf_path, save_image_klf_path):
-        self.images_klf_path = images_klf_path
-        self.save_image_klf_path = save_image_klf_path
 
   def upload_imgs_and_klf(self,images_klf_path):
     klf_list, imgs_list = self.get_all_filenames(images_klf_path)
@@ -194,7 +191,6 @@ class uploadImgAndKlf:
               }
               imgs_list.append(path_img_dict)
 
-    print(imgs_list)
     return imgs_list
 
   def convert_image_to_bytes(self, img):
@@ -203,30 +199,20 @@ class uploadImgAndKlf:
     img_byte_arr = img_byte_arr.getvalue()
     return img_byte_arr
 
-images_klf_path  = os.getenv("IMAGES_KLF_PATH")
-save_image_klf_path  = os.getenv("SAVE_IMAGE_KLF_PATH")
-train_img_path = os.getenv("TRAIN_IMG_PATH")
+  def download_imgs_and_klf_wrapper(self, save_image_klf_path, returned_uuid_and_upload_time_list,is_deleted):
+    if len(returned_uuid_and_upload_time_list) == 2:
+      returned_uuid, upload_time = returned_uuid_and_upload_time_list
+      self.download_imgs_and_klf(save_image_klf_path ,returned_uuid, upload_time,is_deleted)
+      print("download completed")
+    else:
+      print("Error")
 
-upload_img_and_klf = uploadImgAndKlf(images_klf_path,save_image_klf_path)
+  def download_imgs_wrapper(self, save_image_path, returned_uuid_and_upload_time_list,is_deleted):
+    if len(returned_uuid_and_upload_time_list) == 2:
+      returned_uuid, upload_time = returned_uuid_and_upload_time_list
+      self.download_imgs(save_image_path ,returned_uuid, upload_time,is_deleted)
+      print("download completed")
+    else:
+      print("Error")
 
-
-# upload_img_and_klf.get_all_img_filenames(train_img_path)
-
-# upload_img_and_klf.get_all_filenames(train_img_path)
-
-# result = upload_img_and_klf.upload_imgs(train_img_path)
-# print(result)
-# if len(result) == 2:
-#   returned_uuid, upload_time = result
-#   upload_img_and_klf.download_imgs(save_image_klf_path ,returned_uuid, upload_time)
-# else:
-#   print("Error")
-
-
-
-# img_data_list = upload_img_and_klf.download_img_from_db("7980023c-d496-11eb-aab4-a8a15963b507", "2021-06-24 10:47:11+08")
-
-# img1 = img_data_list[0]
-# print(img1)
-
-# upload_img_and_klf.save_img_to_target_dir(save_image_klf_path, img1[0], img1[2], img1[1])
+upload_img_and_klf = uploadImgAndKlf()
