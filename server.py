@@ -18,7 +18,7 @@ async def download_img_socket(websocket, path):
   print(f"server received upload result : {returned_uuid_and_upload_time}")
 
   returned_uuid_and_upload_time_list = json.loads(returned_uuid_and_upload_time)
-  upload_img_and_klf.download_imgs_wrapper(save_image_path, returned_uuid_and_upload_time_list, False)
+  upload_img_and_klf.download_imgs_wrapper(save_image_path, returned_uuid_and_upload_time_list, False, True)
 
 
 async def download_img__klf_socket(websocket, path):
@@ -30,8 +30,8 @@ async def download_img__klf_socket(websocket, path):
   upload_img_and_klf.download_imgs_and_klf_wrapper(save_image_klf_path, returned_uuid_and_upload_time_list, False)
 
 
-start_server = websockets.serve(download_img__klf_socket, "localhost", 8765)
-# start_server = websockets.serve(download_img_socket, "localhost", 8765)
+# start_server = websockets.serve(download_img__klf_socket, "localhost", 8765)
+start_server = websockets.serve(download_img_socket, "localhost", 8765)
 
 
 asyncio.get_event_loop().run_until_complete(start_server)

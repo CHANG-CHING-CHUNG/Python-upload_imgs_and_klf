@@ -38,5 +38,5 @@ async def upload_img_klf_operation():
         # result = await websocket.recv()
         # print(f"client received result: {result}")
 
-asyncio.get_event_loop().run_until_complete(upload_img_klf_operation())
-# asyncio.get_event_loop().run_until_complete(upload_img_operation())
+# asyncio.get_event_loop().run_until_complete(upload_img_klf_operation())
+asyncio.get_event_loop().run_until_complete(upload_img_operation())

@@ -8,6 +8,7 @@ import re
 import datetime
 from PIL import Image
 import io
+import pathlib
 load_dotenv()
 
 class uploadImgAndKlf:
@@ -67,13 +68,15 @@ class uploadImgAndKlf:
 
   def loop_imgs_list_for_training(self, images_klf_path, imgs_list, uuid_batch_number, upload_time):
     returned_uuid = None
+
     try:
       for img_dict in imgs_list:
         img_path = img_dict["path"] + img_dict["img_name"]
+        folder_name = img_dict["path"].split("/")[-2]
         img = Image.open(img_path)
         img_name, img_extension = splitext(basename(img.filename))
         img_bytes = self.convert_image_to_bytes(img)
-        self.upload_img_to_db(uuid_batch_number, img_name, img_bytes, img_extension, upload_time)
+        self.upload_img_to_db(uuid_batch_number, img_name, img_bytes, img_extension, upload_time,folder_name)
       db.commit()
       returned_uuid = db.fetchone()[0]
     except Exception as e :
@@ -81,10 +84,14 @@ class uploadImgAndKlf:
       print("db error: {}".format(e))
     return returned_uuid
 
-  def upload_img_to_db(self,uuid_batch_number, img_name, img_data, img_extension, upload_time):
+  def upload_img_to_db(self,uuid_batch_number, img_name, img_data, img_extension, upload_time, img_path=None):
     insert_query = """insert into web_server_img_store(img_uuid, img_name, img_data, img_mine_type, img_upload_time) 
                       VALUES(%s,%s,%s,%s,%s) RETURNING img_uuid"""
     query_var = (uuid_batch_number, img_name, img_data, img_extension, upload_time)
+    if img_path:
+      insert_query = """insert into web_server_img_store(img_uuid, img_name, img_data, img_mine_type, img_upload_time, img_path) 
+                    VALUES(%s,%s,%s,%s,%s,%s) RETURNING img_uuid"""
+      query_var = (uuid_batch_number, img_name, img_data, img_extension, upload_time, img_path)
     db.execute_query_without_commit(insert_query, query_var)
     # returned_id = db.fetchone()[0]
     return 
@@ -113,13 +120,17 @@ class uploadImgAndKlf:
       self.save_img_to_target_dir(save_image_klf_path, img_name, img_extension, img_bytes)
     return
 
-  def download_imgs(self,save_image_path, uuid_batch_number, upload_time,img_is_deleted):
-    img_list_from_db = self.download_img_from_db(uuid_batch_number, upload_time,img_is_deleted)
+  def download_imgs(self,save_image_path, uuid_batch_number, upload_time,img_is_deleted, has_path=False):
+    img_list_from_db = self.download_img_from_db(uuid_batch_number, upload_time,img_is_deleted,has_path)
     for img in img_list_from_db:
       img_name = img[0]
       img_bytes = img[1]
       img_extension = img[2]
-      self.save_img_to_target_dir(save_image_path, img_name, img_extension, img_bytes)
+      if has_path:
+        img_path = img[3]
+        self.save_img_to_target_dir(save_image_path, img_name, img_extension, img_bytes, img_path)
+      else:
+        self.save_img_to_target_dir(save_image_path, img_name, img_extension, img_bytes)
     return
 
   def download_klf_from_db(self,uuid_batch_number, upload_time):
@@ -130,18 +141,28 @@ class uploadImgAndKlf:
     result = db.fetchall()
     return result
 
-  def download_img_from_db(self,uuid_batch_number, upload_time, is_deleted=False):
+  def download_img_from_db(self,uuid_batch_number, upload_time, is_deleted=False, has_path=False):
     select_img_query = """select img_name, img_data, img_mine_type from web_server_img_store 
                           where img_uuid = %s 
                           and img_upload_time = %s
                           and img_is_deleted = %s;"""
     query_var = (uuid_batch_number, upload_time, is_deleted,)
+    if has_path:
+      select_img_query = """select img_name, img_data, img_mine_type, img_path from web_server_img_store 
+                          where img_uuid = %s 
+                          and img_upload_time = %s
+                          and img_is_deleted = %s;"""
     db.execute_query(select_img_query, query_var)
     result = db.fetchall()
     return result
 
-  def save_img_to_target_dir(self, directory_path, img_name, img_extension, img_bytes):
+  def save_img_to_target_dir(self, directory_path, img_name, img_extension, img_bytes, img_path=None):
     target_dir_path = directory_path + img_name + img_extension
+    if img_path:
+      target_dir_full_path = directory_path + img_path + "/"
+      path = pathlib.Path(target_dir_full_path)
+      path.mkdir(parents=True, exist_ok=True)
+      target_dir_path = target_dir_full_path + img_name + img_extension
     img = self.read_image_from_bytes(img_name, img_bytes)
     img.save(target_dir_path,format=img.format)
     return
@@ -207,10 +228,10 @@ class uploadImgAndKlf:
     else:
       print("Error")
 
-  def download_imgs_wrapper(self, save_image_path, returned_uuid_and_upload_time_list,is_deleted):
+  def download_imgs_wrapper(self, save_image_path, returned_uuid_and_upload_time_list,is_deleted,has_path=False):
     if len(returned_uuid_and_upload_time_list) == 2:
       returned_uuid, upload_time = returned_uuid_and_upload_time_list
-      self.download_imgs(save_image_path ,returned_uuid, upload_time,is_deleted)
+      self.download_imgs(save_image_path ,returned_uuid, upload_time,is_deleted,has_path)
       print("download completed")
     else:
       print("Error")
