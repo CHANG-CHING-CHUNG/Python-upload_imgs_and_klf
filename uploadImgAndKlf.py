@@ -205,7 +205,7 @@ class uploadImgAndKlf:
     for (dirpath, dirnames, filenames) in walk(directory_path):
         if len(filenames) >= 1:
           for file in filenames:
-            if len(re.findall(".jpeg",file)):
+            if len(re.findall(".jpeg|.jpg",file)):
               path_img_dict = {
                 "path":dirpath+"/",
                 "img_name":file
