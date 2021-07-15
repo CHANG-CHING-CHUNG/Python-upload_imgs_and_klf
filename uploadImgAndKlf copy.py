@@ -27,7 +27,6 @@ class uploadImgAndKlf:
 
   def upload_imgs(self,train_img_path):
       imgs_list = self.get_all_img_filenames(train_img_path)
-
       uuid_batch_number = str(uuid.uuid1())
       current_time = datetime.datetime.now()
       upload_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
@@ -121,86 +120,17 @@ class uploadImgAndKlf:
       self.save_img_to_target_dir(save_image_klf_path, img_name, img_extension, img_bytes)
     return
 
-  def download_img_list_from_db(self,uuid_batch_number, upload_time, is_deleted=False, has_path=False):
-    select_img_query = """select img_name, img_mine_type from web_server_img_store 
-                          where img_uuid = %s 
-                          and img_upload_time = %s
-                          and img_is_deleted = %s;"""
-    query_var = (uuid_batch_number, upload_time, is_deleted,)
-    if has_path:
-      select_img_query = """select img_name, img_mine_type, img_path from web_server_img_store 
-                          where img_uuid = %s 
-                          and img_upload_time = %s
-                          and img_is_deleted = %s;"""
-    db.execute_query(select_img_query, query_var)
-    result = db.fetchall()
-    result_list = []
-    for img in result:
-      img_dict = {
-        "path":img[2],
-        "img_name":img[0]+img[1]
-      }
-      result_list.append(img_dict)
-    return result_list
-
-  def get_local_img_list(self, save_image_path):
-    dirpath_list = []
-    for (dirpath, dirnames, filenames) in walk(save_image_path):
-        for filename in filenames:
-          img_dict = {
-            "path":dirpath,
-            "img_name":filename
-          }
-          dirpath_list.append(img_dict)
-    return dirpath_list
-
-  def filtered_img_not_in_db_list(self,img_list_without_bytea, local_img_list):
-    db_img_list_len = len(img_list_without_bytea)
-    local_img_list_len = len(local_img_list)
-
-    if db_img_list_len > local_img_list_len:
-      temp = local_img_list
-      local_img_list = img_list_without_bytea
-      img_list_without_bytea = temp
-    filtered_img_list = []
-    for img in local_img_list:
-      in_db = False
-      for img_db in img_list_without_bytea:
-        if img['img_name'] == img_db['img_name']:
-          in_db = True
-          break
-      if not in_db:
-        filtered_img_list.append(img)
-    return filtered_img_list
-  def clear_imgs_not_exist(self,save_image_path, uuid_batch_number, upload_time, is_deleted=False, has_path=False):
-    img_list_without_bytea = self.download_img_list_from_db(uuid_batch_number, upload_time,is_deleted,has_path)
-    local_img_list = self.get_local_img_list(save_image_path)
-    self.filtered_img_not_in_db_list(img_list_without_bytea, local_img_list)
-
-
-    # for img in img_list_without_bytea:
-    #   for dir in dirpath_list:
-    #     img_path = os.path.join(dir,img[0]+img[1])
-    #     if os.path.exists(img_path):
-    #       os.remove(img_path)
-    #     else:
-    #       print("Can not delete the file as it doesn't exists")
-    pass
-
   def download_imgs(self,save_image_path, uuid_batch_number, upload_time,img_is_deleted, has_path=False):
-    self.clear_imgs_not_exist(save_image_path, uuid_batch_number, upload_time,img_is_deleted,has_path)
-
-    # img_list_from_db = self.download_img_from_db(uuid_batch_number, upload_time,img_is_deleted,has_path)
-    # for img in img_list_from_db:
-    #   img_name = img[0]
-    #   img_bytes = img[1]
-    #   img_extension = img[2]
-    #   print(img)
-    #   if has_path:
-    #     img_path = img[3]
-    #     self.save_img_to_target_dir(save_image_path, img_name, img_extension, img_bytes, img_path)
-    #   else:
-    #     self.save_img_to_target_dir(save_image_path, img_name, img_extension, img_bytes)
+    img_list_from_db = self.download_img_from_db(uuid_batch_number, upload_time,img_is_deleted,has_path)
+    for img in img_list_from_db:
+      img_name = img[0]
+      img_bytes = img[1]
+      img_extension = img[2]
+      if has_path:
+        img_path = img[3]
+        self.save_img_to_target_dir(save_image_path, img_name, img_extension, img_bytes, img_path)
+      else:
+        self.save_img_to_target_dir(save_image_path, img_name, img_extension, img_bytes)
     return
 
   def download_klf_from_db(self,uuid_batch_number, upload_time):
@@ -306,11 +236,4 @@ class uploadImgAndKlf:
     else:
       print("Error")
 
-TRAIN_IMG_PATH = os.getenv('TRAIN_IMG_PATH')
 upload_img_and_klf = uploadImgAndKlf()
-returned_uuid_and_upload_time = upload_img_and_klf.upload_imgs(TRAIN_IMG_PATH)
-
-returned_uuid = returned_uuid_and_upload_time[0]
-upload_time = returned_uuid_and_upload_time[1]
-SAVE_IMAGE_KLF_PATH = os.getenv('SAVE_IMAGE_KLF_PATH')
-upload_img_and_klf.download_imgs(SAVE_IMAGE_KLF_PATH, returned_uuid, upload_time, False, True)
