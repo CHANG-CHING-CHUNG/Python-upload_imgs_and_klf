@@ -121,17 +121,12 @@ class uploadImgAndKlf:
       self.save_img_to_target_dir(save_image_klf_path, img_name, img_extension, img_bytes)
     return
 
-  def download_img_list_from_db(self,uuid_batch_number, upload_time, is_deleted=False, has_path=False):
-    select_img_query = """select img_name, img_mine_type from web_server_img_store 
+  def download_img_list_from_db(self,uuid_batch_number, upload_time, is_deleted=False):
+    select_img_query = """select img_name, img_mine_type, img_path from web_server_img_store 
                           where img_uuid = %s 
                           and img_upload_time = %s
                           and img_is_deleted = %s;"""
     query_var = (uuid_batch_number, upload_time, is_deleted,)
-    if has_path:
-      select_img_query = """select img_name, img_mine_type, img_path from web_server_img_store 
-                          where img_uuid = %s 
-                          and img_upload_time = %s
-                          and img_is_deleted = %s;"""
     db.execute_query(select_img_query, query_var)
     result = db.fetchall()
     result_list = []
@@ -154,53 +149,82 @@ class uploadImgAndKlf:
           dirpath_list.append(img_dict)
     return dirpath_list
 
-  def filtered_img_not_in_db_list(self,img_list_without_bytea, local_img_list):
+  def filtered_imgs(self,img_list_without_bytea, local_img_list, condition_str):
+    condition_list = ["not in db list", "repeated imgs"]
     db_img_list_len = len(img_list_without_bytea)
     local_img_list_len = len(local_img_list)
 
-    if db_img_list_len > local_img_list_len:
-      temp = local_img_list
-      local_img_list = img_list_without_bytea
-      img_list_without_bytea = temp
     filtered_img_list = []
+
     for img in local_img_list:
-      in_db = False
+      is_valid = False
       for img_db in img_list_without_bytea:
         if img['img_name'] == img_db['img_name']:
-          in_db = True
+          is_valid = True
           break
-      if not in_db:
-        filtered_img_list.append(img)
+      if condition_str == condition_list[0] and not is_valid:
+          filtered_img_list.append(img)
+      elif condition_str == condition_list[1] and is_valid:
+          filtered_img_list.append(img)
+
     return filtered_img_list
-  def clear_imgs_not_exist(self,save_image_path, uuid_batch_number, upload_time, is_deleted=False, has_path=False):
-    img_list_without_bytea = self.download_img_list_from_db(uuid_batch_number, upload_time,is_deleted,has_path)
-    local_img_list = self.get_local_img_list(save_image_path)
-    self.filtered_img_not_in_db_list(img_list_without_bytea, local_img_list)
 
+  def clear_imgs_not_exist_in_db(self,img_list_without_bytea, local_img_list):
+    local_img_to_remove = self.filtered_imgs(img_list_without_bytea, local_img_list, "not in db list")
+    for img in local_img_to_remove:
+      print(img)
+      img_path = os.path.join(img["path"],img["img_name"])
+      if os.path.exists(img_path):
+        os.remove(img_path)
+      else:
+        print("Can not delete the file as it doesn't exists")
+    return
 
-    # for img in img_list_without_bytea:
-    #   for dir in dirpath_list:
-    #     img_path = os.path.join(dir,img[0]+img[1])
-    #     if os.path.exists(img_path):
-    #       os.remove(img_path)
-    #     else:
-    #       print("Can not delete the file as it doesn't exists")
-    pass
+  def check_repeated_imgs(self,img, repeated_img_list):
+    for repeated_img in repeated_img_list:
+      if img["img_name"] == repeated_img["img_name"]:
+        return True
+    return False
+
+  
+  def remove_repeated_imgs_from_list(self,img_list_without_bytea, local_img_list):
+    repeated_img_list = self.filtered_imgs(img_list_without_bytea, local_img_list, "repeated imgs")
+    new_img_list = []
+    for img in img_list_without_bytea:
+      is_repeated = self.check_repeated_imgs(img, repeated_img_list)
+      if not is_repeated:
+        new_img_list.append(img)
+    
+    return new_img_list
 
   def download_imgs(self,save_image_path, uuid_batch_number, upload_time,img_is_deleted, has_path=False):
-    self.clear_imgs_not_exist(save_image_path, uuid_batch_number, upload_time,img_is_deleted,has_path)
+    img_list_from_db = self.download_img_from_db_before(uuid_batch_number, upload_time,img_is_deleted,has_path)
+    for img in img_list_from_db:
+      img_name = img[0]
+      img_bytes = img[1]
+      img_extension = img[2]
+      if has_path:
+        img_path = img[3]
+        self.save_img_to_target_dir(save_image_path, img_name, img_extension, img_bytes, img_path)
+      else:
+        self.save_img_to_target_dir(save_image_path, img_name, img_extension, img_bytes)
+    return
 
-    # img_list_from_db = self.download_img_from_db(uuid_batch_number, upload_time,img_is_deleted,has_path)
-    # for img in img_list_from_db:
-    #   img_name = img[0]
-    #   img_bytes = img[1]
-    #   img_extension = img[2]
-    #   print(img)
-    #   if has_path:
-    #     img_path = img[3]
-    #     self.save_img_to_target_dir(save_image_path, img_name, img_extension, img_bytes, img_path)
-    #   else:
-    #     self.save_img_to_target_dir(save_image_path, img_name, img_extension, img_bytes)
+  def download_imgs_for_train(self,save_image_path, uuid_batch_number, upload_time,img_is_deleted):
+    img_list_without_bytea = self.download_img_list_from_db(uuid_batch_number, upload_time,img_is_deleted)
+    local_img_list = self.get_local_img_list(save_image_path)
+    self.clear_imgs_not_exist_in_db(img_list_without_bytea, local_img_list)
+    new_img_list = self.remove_repeated_imgs_from_list(img_list_without_bytea, local_img_list)
+    new_img_list = tuple(map(lambda img: img["img_name"].split(".")[0], new_img_list))
+    if not new_img_list:
+      return
+    img_list_from_db = self.download_img_from_db_by_list(uuid_batch_number, upload_time, new_img_list, img_is_deleted)
+    for img in img_list_from_db:
+      img_name = img[0]
+      img_bytes = img[1]
+      img_extension = img[2]
+      img_path = img[3]
+      self.save_img_to_target_dir(save_image_path, img_name, img_extension, img_bytes, img_path)
     return
 
   def download_klf_from_db(self,uuid_batch_number, upload_time):
@@ -211,7 +235,17 @@ class uploadImgAndKlf:
     result = db.fetchall()
     return result
 
-  def download_img_from_db(self,uuid_batch_number, upload_time, is_deleted=False, has_path=False):
+  def download_img_from_db(self,uuid_batch_number, upload_time, is_deleted=False):
+    select_img_query = """select img_name, img_data, img_mine_type from web_server_img_store 
+                          where img_uuid = %s 
+                          and img_upload_time = %s
+                          and img_is_deleted = %s;"""
+    query_var = (uuid_batch_number, upload_time, is_deleted,)
+    db.execute_query(select_img_query, query_var)
+    result = db.fetchall()
+    return result
+
+  def download_img_from_db_before(self,uuid_batch_number, upload_time, is_deleted=False, has_path=False):
     select_img_query = """select img_name, img_data, img_mine_type from web_server_img_store 
                           where img_uuid = %s 
                           and img_upload_time = %s
@@ -222,6 +256,18 @@ class uploadImgAndKlf:
                           where img_uuid = %s 
                           and img_upload_time = %s
                           and img_is_deleted = %s;"""
+    db.execute_query(select_img_query, query_var)
+    result = db.fetchall()
+    return result
+
+  def download_img_from_db_by_list(self,uuid_batch_number, upload_time, img_list, is_deleted=False):
+    select_img_query = """select img_name, img_data, img_mine_type, img_path from web_server_img_store 
+                          where img_uuid = %s
+                          and img_upload_time = %s
+                          and img_is_deleted = %s
+                          and img_name
+                          in %s;"""
+    query_var = (uuid_batch_number, upload_time, is_deleted,img_list)
     db.execute_query(select_img_query, query_var)
     result = db.fetchall()
     return result
@@ -298,7 +344,15 @@ class uploadImgAndKlf:
     else:
       print("Error")
 
-  def download_imgs_wrapper(self, save_image_path, returned_uuid_and_upload_time_list,is_deleted,has_path=False):
+  def download_imgs_wrapper(self, save_image_path, returned_uuid_and_upload_time_list,is_deleted):
+    if len(returned_uuid_and_upload_time_list) == 2:
+      returned_uuid, upload_time = returned_uuid_and_upload_time_list
+      self.download_imgs_for_train(save_image_path ,returned_uuid, upload_time,is_deleted)
+      print("download completed")
+    else:
+      print("Error")
+
+  def download_imgs_wrapper_before(self, save_image_path, returned_uuid_and_upload_time_list,is_deleted,has_path=False):
     if len(returned_uuid_and_upload_time_list) == 2:
       returned_uuid, upload_time = returned_uuid_and_upload_time_list
       self.download_imgs(save_image_path ,returned_uuid, upload_time,is_deleted,has_path)
@@ -306,11 +360,11 @@ class uploadImgAndKlf:
     else:
       print("Error")
 
-TRAIN_IMG_PATH = os.getenv('TRAIN_IMG_PATH')
-upload_img_and_klf = uploadImgAndKlf()
-returned_uuid_and_upload_time = upload_img_and_klf.upload_imgs(TRAIN_IMG_PATH)
+# TRAIN_IMG_PATH = os.getenv('TRAIN_IMG_PATH')
+# upload_img_and_klf = uploadImgAndKlf()
+# returned_uuid_and_upload_time = upload_img_and_klf.upload_imgs(TRAIN_IMG_PATH)
 
-returned_uuid = returned_uuid_and_upload_time[0]
-upload_time = returned_uuid_and_upload_time[1]
-SAVE_IMAGE_KLF_PATH = os.getenv('SAVE_IMAGE_KLF_PATH')
-upload_img_and_klf.download_imgs(SAVE_IMAGE_KLF_PATH, returned_uuid, upload_time, False, True)
+# returned_uuid = returned_uuid_and_upload_time[0]
+# upload_time = returned_uuid_and_upload_time[1]
+# SAVE_IMAGE_KLF_PATH = os.getenv('SAVE_IMAGE_KLF_PATH')
+# upload_img_and_klf.download_imgs_wrapper(SAVE_IMAGE_KLF_PATH, returned_uuid_and_upload_time, False)
