@@ -27,9 +27,21 @@
 ![](https://i.imgur.com/7KLHsyc.png)
 
 
+
+## AI 訓練時
 ### 圖片下載
-初始化實例後，調用 `download_imgs_wrapper` 方法傳入要放置下載的圖片的路徑、`upload_imgs` 回傳的 uuid 及 upload_time 的 list 、圖片篩選條件`is_deleted` True/False，
-![](https://i.imgur.com/hr4Ul5K.png)
+初始化實例後，調用 `download_imgs_wrapper` 方法傳入要放置下載的圖片的路徑、`upload_imgs` 回傳的 uuid 及 upload_time 的 list 、圖片篩選條件`is_deleted` True/False
+![](https://i.imgur.com/HbAtoJJ.png)
+
+下載成功訊息
+![](https://i.imgur.com/usXx02h.png)
+失敗訊息
+![](https://i.imgur.com/7KLHsyc.png)
+
+## AI 預測時
+### 圖片下載
+初始化實例後，調用 `download_imgs_wrapper` 方法傳入要放置下載的圖片的路徑、`upload_imgs` 回傳的 uuid 及 upload_time 的 list 、圖片篩選條件`is_deleted` True/False 及 `has_path` True/False
+![](https://i.imgur.com/VkMVw3i.png)
 下載成功訊息
 ![](https://i.imgur.com/usXx02h.png)
 失敗訊息
