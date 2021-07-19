@@ -94,7 +94,6 @@ class uploadImgAndKlf:
                     VALUES(%s,%s,%s,%s,%s,%s) RETURNING img_uuid"""
       query_var = (uuid_batch_number, img_name, img_data, img_extension, upload_time, img_path)
     db.execute_query_without_commit(insert_query, query_var)
-    # returned_id = db.fetchone()[0]
     return 
 
   def upload_klf_to_db(self,uuid_batch_number, klf_filenmame, klf_bytes, klf_extension, upload_time):
@@ -102,7 +101,6 @@ class uploadImgAndKlf:
                           values(%s, %s, %s, %s, %s) returning klf_uuid;"""
     query_var = (uuid_batch_number, klf_filenmame, klf_bytes, klf_extension, upload_time,)
     db.execute_query_without_commit(insert_klf_query, query_var)
-    # returned_uuid = db.fetchone()[0]
     return
 
   def download_imgs_and_klf(self,save_image_klf_path, uuid_batch_number, upload_time,img_is_deleted):
@@ -151,9 +149,6 @@ class uploadImgAndKlf:
 
   def filtered_imgs(self,img_list_without_bytea, local_img_list, condition_str):
     condition_list = ["not in db list", "repeated imgs"]
-    db_img_list_len = len(img_list_without_bytea)
-    local_img_list_len = len(local_img_list)
-
     filtered_img_list = []
 
     for img in local_img_list:
@@ -241,21 +236,6 @@ class uploadImgAndKlf:
                           and img_upload_time = %s
                           and img_is_deleted = %s;"""
     query_var = (uuid_batch_number, upload_time, is_deleted,)
-    db.execute_query(select_img_query, query_var)
-    result = db.fetchall()
-    return result
-
-  def download_img_from_db_before(self,uuid_batch_number, upload_time, is_deleted=False, has_path=False):
-    select_img_query = """select img_name, img_data, img_mine_type from web_server_img_store 
-                          where img_uuid = %s 
-                          and img_upload_time = %s
-                          and img_is_deleted = %s;"""
-    query_var = (uuid_batch_number, upload_time, is_deleted,)
-    if has_path:
-      select_img_query = """select img_name, img_data, img_mine_type, img_path from web_server_img_store 
-                          where img_uuid = %s 
-                          and img_upload_time = %s
-                          and img_is_deleted = %s;"""
     db.execute_query(select_img_query, query_var)
     result = db.fetchall()
     return result
@@ -351,20 +331,3 @@ class uploadImgAndKlf:
       print("download completed")
     else:
       print("Error")
-
-  def download_imgs_wrapper_before(self, save_image_path, returned_uuid_and_upload_time_list,is_deleted,has_path=False):
-    if len(returned_uuid_and_upload_time_list) == 2:
-      returned_uuid, upload_time = returned_uuid_and_upload_time_list
-      self.download_imgs(save_image_path ,returned_uuid, upload_time,is_deleted,has_path)
-      print("download completed")
-    else:
-      print("Error")
-
-# TRAIN_IMG_PATH = os.getenv('TRAIN_IMG_PATH')
-# upload_img_and_klf = uploadImgAndKlf()
-# returned_uuid_and_upload_time = upload_img_and_klf.upload_imgs(TRAIN_IMG_PATH)
-
-# returned_uuid = returned_uuid_and_upload_time[0]
-# upload_time = returned_uuid_and_upload_time[1]
-# SAVE_IMAGE_KLF_PATH = os.getenv('SAVE_IMAGE_KLF_PATH')
-# upload_img_and_klf.download_imgs_wrapper(SAVE_IMAGE_KLF_PATH, returned_uuid_and_upload_time, False)
